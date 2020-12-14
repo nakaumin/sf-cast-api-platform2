@@ -11,19 +11,20 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ApiResource(
  *     accessControl="is_granted('ROLE_USER')",
+ *     collectionOperations={
+ *          "get",
+ *          "post"={"access_control"="is_granted('IS_AUTHENTICATED_ANONYMOUSLY')"},
+ *     },
  *     itemOperations={
  *          "get",
  *          "put"={ "access_control"="is_granted('ROLE_USER') and object == user" },
  *          "delete"={ "access_control"="is_granted('ROLE_ADMIN')" },
- *     },
- *     collectionOperations={
- *          "get",
- *          "post"={ "access_control"="is_granted('AUTHENTICATED_ANONYMOUSLY')" },
  *     },
  *     normalizationContext={"groups"={"user:read"}},
  *     denormalizationContext={"groups"={"user:write"}},
@@ -63,6 +64,7 @@ class User implements UserInterface
 
     /**
      * @Groups({"user:write"})
+     * @SerializedName("password")
      */
     private $plainPassword;
 
