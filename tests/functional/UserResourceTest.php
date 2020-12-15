@@ -47,37 +47,50 @@ class UserResourceTest extends CustomApiTestCase
         $this->login($client, 'user@example.com', 'foo');
 
         $client->request('PUT', '/api/users/'.$user->getId(), [
-            'json' => ['username' => 'newusername'],
+            'json' => [
+                'username' => 'newusername',
+                'roles' => ['ROLE_ADMIN'], // will be ignored
+            ],
         ]);
-
         $this->assertResponseIsSuccessful();
         $this->assertJsonContains([
             'username' => 'newusername',
         ]);
 
-      /*
-        $user1 = $this->createUser('user1@example.com', 'foo');
-        $user2 = $this->createUser('user2@example.com', 'foo');
-
-        $user = new User('Block of cheedar');
-
         $em = $this->getEntityManager();
-        $em->persist($user);
+        /** @var User $user */
+        $user = $em->getRepository(User::class)->find($user->getId());
+        $this->assertEquals(['ROLE_USER'], $user->getRoles());
+    }
+
+    public function testGetUser()
+    {
+        $client = self::createClient();
+        $user = $this->createUserAndLogin($client, 'cheeseplease@example.com', 'foo');
+
+        $user->setPhoneNumber('555.123.4567');
+        $em = $this->getEntityManager();
         $em->flush();
 
-        $this->login($client, 'user2@example.com', 'foo');
-        $client->request('PUT', '/api/users/'.$user->getId(), [
-            'json' => ['title' => 'updated', 'owner' => '/api/users/'.$user2->getId()],
+        $client->request('GET', '/api/users/'.$user->getId());
+        $this->assertJsonContains([
+            'username' => 'cheeseplease',
         ]);
-        $this->assertResponseStatusCodeSame(403);
-        //var_dump($client->getResponse()->getContent(false));
 
-        $this->login($client, 'user1@example.com', 'foo');
-        $client->request('PUT', '/api/users/'.$user->getId(), [
-            'json' => ['title' => 'updated'],
+        $data = $client->getResponse()->toArray();
+        $this->assertArrayNotHasKey('phoneNumber', $data);
+
+        // refresh the user & elevate
+        $user = $em->getRepository(User::class)->find($user->getId());
+        $user->setRoles(['ROLE_ADMIN']);
+        $em->flush();
+        // update roles
+        $this->login($client, 'cheeseplease@example.com', 'foo');
+
+        $client->request('GET', '/api/users/'.$user->getId());
+        $this->assertJsonContains([
+            'phoneNumber' => '555.123.4567',
         ]);
-        $this->assertResponseStatusCodeSame(200);
-       */
 
     }
 
